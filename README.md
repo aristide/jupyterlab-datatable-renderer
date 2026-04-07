@@ -1,8 +1,8 @@
 # jupyterlab-datatable-renderer
 
-[![Github Actions Status](https://github.com/UNSD/jupyterlab-datatable-renderer/workflows/Build/badge.svg)](https://github.com/UNSD/jupyterlab-datatable-renderer/actions/workflows/build.yml)
+[![Github Actions Status](https://github.com/aristide/jupyterlab-datatable-renderer/workflows/Build/badge.svg)](https://github.com/aristide/jupyterlab-datatable-renderer/actions/workflows/build.yml)
 [![PyPI](https://img.shields.io/pypi/v/jupyterlab_datatable_renderer.svg)](https://pypi.org/project/jupyterlab_datatable_renderer)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/UNSD/jupyterlab-datatable-renderer/master?urlpath=lab)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/aristide/jupyterlab-datatable-renderer/master?urlpath=lab)
 
 A JupyterLab 4.x extension to render data tables.
 

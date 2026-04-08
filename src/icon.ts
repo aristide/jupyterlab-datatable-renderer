@@ -1,0 +1,17 @@
+import { LabIcon } from '@jupyterlab/ui-components';
+
+// Inlined so the labextension build doesn't need an svg loader.
+// Source-of-truth copy lives at style/icons/datatable.svg.
+const datatableSvgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="4" width="18" height="16" rx="2.5"/>
+  <line x1="3" y1="9" x2="21" y2="9"/>
+  <line x1="3" y1="14" x2="21" y2="14"/>
+  <line x1="9" y1="4" x2="9" y2="20"/>
+  <line x1="15" y1="4" x2="15" y2="20"/>
+  <rect x="3.6" y="4.6" width="5.4" height="4.4" rx="1" fill="currentColor" fill-opacity="0.18" stroke="none"/>
+</svg>`;
+
+export const dataTableIcon = new LabIcon({
+  name: 'jupyterlab-datatable-renderer:icon',
+  svgstr: datatableSvgStr
+});

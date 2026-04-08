@@ -57,11 +57,19 @@ def _build_bundle(df, html: str) -> dict:
 
 
 def install_pandas_formatter() -> bool:
-    """Patch pandas.DataFrame so JupyterLab receives the dual MIME bundle."""
+    """Patch pandas.DataFrame so JupyterLab receives the dual MIME bundle.
+
+    Idempotent: if the wrapper is already installed (detected via the
+    ``__dt_installed__`` marker attribute), this is a no-op.
+    """
     try:
         import pandas as pd
     except ImportError:
         return False
+
+    existing = getattr(pd.DataFrame, "_repr_mimebundle_", None)
+    if existing is not None and getattr(existing, "__dt_installed__", False):
+        return True
 
     original_repr_html = pd.DataFrame._repr_html_
 
@@ -72,16 +80,24 @@ def install_pandas_formatter() -> bool:
             html = ""
         return _build_bundle(self, html)
 
+    _repr_mimebundle_.__dt_installed__ = True  # type: ignore[attr-defined]
     pd.DataFrame._repr_mimebundle_ = _repr_mimebundle_  # type: ignore[assignment]
     return True
 
 
 def install_polars_formatter() -> bool:
-    """Patch polars.DataFrame so its repr also goes through the DataTable bundle."""
+    """Patch polars.DataFrame so its repr also goes through the DataTable bundle.
+
+    Idempotent: see :func:`install_pandas_formatter`.
+    """
     try:
         import polars as pl
     except ImportError:
         return False
+
+    existing = getattr(pl.DataFrame, "_repr_mimebundle_", None)
+    if existing is not None and getattr(existing, "__dt_installed__", False):
+        return True
 
     original_repr_html = getattr(pl.DataFrame, "_repr_html_", None)
 
@@ -98,6 +114,7 @@ def install_polars_formatter() -> bool:
                 html = ""
         return _build_bundle(pdf, html)
 
+    _repr_mimebundle_.__dt_installed__ = True  # type: ignore[attr-defined]
     pl.DataFrame._repr_mimebundle_ = _repr_mimebundle_  # type: ignore[assignment]
     return True
 

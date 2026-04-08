@@ -7,31 +7,81 @@
       "type": "boolean",
       "default": true,
       "title": "Enable auto-rendering",
-      "description": "When true, intercepts DataFrame outputs and renders them with the interactive DataTable widget."
-    },
-    "defaultPageSize": {
-      "type": "number",
-      "default": 100,
-      "title": "Default page size",
-      "enum": [25, 50, 100, 250, 500, 1000]
+      "description": "Automatically intercept DataFrame and tabular cell output and render as an interactive DataTable."
     },
     "htmlInterception": {
       "type": "boolean",
       "default": true,
       "title": "Intercept HTML tables",
-      "description": "Enable the client-side HTML table interceptor for kernels without the formatter hook."
+      "description": "Parse <table> output from R, Julia, SQL magic and render via DataTable. Disable if you prefer the default JupyterLab HTML renderer for non-Python kernels."
+    },
+    "theme": {
+      "type": "string",
+      "default": "auto",
+      "enum": ["auto", "light", "dark"],
+      "title": "Color theme",
+      "description": "Sync with JupyterLab or force a specific theme for the DataTable renderer."
+    },
+    "defaultPageSize": {
+      "type": "number",
+      "default": 100,
+      "enum": [25, 50, 100, 250, 500, 1000],
+      "title": "Default page size",
+      "description": "Number of rows to display per page. Users can override this per-table at runtime."
+    },
+    "maxClientRows": {
+      "type": "number",
+      "default": 10000,
+      "minimum": 100,
+      "maximum": 100000,
+      "title": "Max client-side fallback rows",
+      "description": "When the server extension is unavailable, this limits how many rows are shipped in the MIME bundle for client-side pagination. Lower values reduce notebook file size."
+    },
+    "keyboardNav": {
+      "type": "boolean",
+      "default": true,
+      "title": "Keyboard navigation",
+      "description": "Enable ← → arrow keys for page navigation, Home/End for first/last page."
     },
     "lazyProfiles": {
       "type": "boolean",
       "default": true,
       "title": "Lazy-load column profiles",
-      "description": "Fetch column statistics on hover rather than up front."
+      "description": "Fetch column statistics and distribution histograms on demand when you hover or click a column header, rather than computing all profiles up front."
     },
-    "maxClientRows": {
+    "showColumnTypes": {
+      "type": "boolean",
+      "default": true,
+      "title": "Show column type badges",
+      "description": "Display type indicators (# Numeric, Aa String, ◷ Date, ⊘ Bool) in column headers."
+    },
+    "showDistributions": {
+      "type": "boolean",
+      "default": true,
+      "title": "Show inline distributions",
+      "description": "Display sparkline histograms and bar charts in column headers after profiling."
+    },
+    "compactHeaders": {
+      "type": "boolean",
+      "default": false,
+      "title": "Compact column headers",
+      "description": "Reduce header height by hiding inline distributions. Type badges and sort indicators remain visible."
+    },
+    "cacheMaxEntries": {
       "type": "number",
-      "default": 10000,
-      "title": "Max rows for client-side fallback",
-      "description": "When the server extension is unavailable, the maximum number of rows to keep in the browser."
+      "default": 50,
+      "minimum": 5,
+      "maximum": 500,
+      "title": "Max cached DataFrames",
+      "description": "Maximum number of DataFrame references held in the server LRU cache. Older entries are evicted when this limit is reached. Environment variable: DT_CACHE_MAX_ENTRIES."
+    },
+    "cacheTTL": {
+      "type": "number",
+      "default": 3600,
+      "minimum": 60,
+      "maximum": 86400,
+      "title": "Cache TTL (seconds)",
+      "description": "Time-to-live before a cache entry becomes eligible for eviction. Set higher for long exploratory sessions. Environment variable: DT_CACHE_TTL."
     }
   },
   "additionalProperties": false

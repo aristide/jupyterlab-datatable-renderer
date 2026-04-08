@@ -1,0 +1,713 @@
+/*
+ * DataTable settings form — JupyterLab-native, theme-aware.
+ *
+ * Three-zone layout:
+ *   1. Fixed topbar  (logo + title + search) with bottom separator
+ *   2. Scrollable body of full-width accordions and fields
+ *   3. Fixed footer toolbar (Reset all / Save settings) with top separator
+ *
+ * Built on --jp-* CSS variables and JL classes (jp-switch, jp-mod-styled,
+ * jp-Toolbar, jp-Dialog-button) so it adapts to light + dark themes.
+ */
+
+.jp-DataTable-settings {
+  /* Lumino sets `contain: strict` on widget nodes which breaks the
+   * flex+overflow chain inside. Override it so descendants can size
+   * normally and the body can scroll. */
+  contain: layout !important;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: var(--jp-sidebar-min-width, 240px);
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  overflow: hidden;
+  --dts-section-radius: 10px;
+  --dts-control-radius: 8px;
+  --dts-pad: 14px;
+}
+
+/* Three-row grid: header (auto) / body (1fr, scrolls) / footer (auto).
+ * Grid is more reliable than flex for fixed top/bottom + scrollable
+ * middle layouts because the 1fr row has a guaranteed definite size. */
+.jp-DataTable-form-shell {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.jp-DataTable-form-loading,
+.jp-DataTable-form-error {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-DataTable-form-error {
+  color: var(--jp-error-color1);
+}
+
+/* ─────────── topbar ─────────── */
+
+.jp-DataTable-form-header {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px var(--dts-pad) 12px;
+  background: var(--jp-layout-color1);
+  /* Strong bottom separator dividing topbar from form content. */
+  border-bottom: 1px solid var(--jp-border-color1);
+  box-shadow: 0 1px 0 0 var(--jp-border-color2);
+}
+
+.jp-DataTable-form-headerRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jp-DataTable-form-logo {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--jp-brand-color1, #2196f3),
+    var(--jp-success-color1, #3fb950)
+  );
+  box-shadow: 0 0 16px
+    color-mix(in srgb, var(--jp-brand-color1, #2196f3) 22%, transparent);
+}
+
+.jp-DataTable-form-logo svg {
+  width: 18px;
+  height: 18px;
+}
+
+.jp-DataTable-form-headerText {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.jp-DataTable-form-headerTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--jp-ui-font-color0, var(--jp-ui-font-color1));
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.jp-DataTable-form-headerSub {
+  font-size: 11px;
+  color: var(--jp-ui-font-color2);
+  margin-top: 2px;
+}
+
+.jp-DataTable-form-modifiedBadge {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(
+    in srgb,
+    var(--jp-warn-color1, var(--jp-brand-color1)) 14%,
+    transparent
+  );
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--jp-warn-color1, var(--jp-brand-color1)) 35%,
+      transparent
+    );
+  color: var(--jp-warn-color1, var(--jp-brand-color1));
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* search */
+
+.jp-DataTable-form-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.jp-DataTable-form-search .jp-DataTable-form-searchIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  width: 13px;
+  height: 13px;
+  color: var(--jp-ui-font-color3);
+  pointer-events: none;
+  z-index: 1;
+}
+
+input.jp-DataTable-form-searchInput,
+.jp-DataTable-form-search input.jp-DataTable-form-searchInput {
+  width: 100%;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 12px 0 30px;
+  margin: 0;
+  font-family: var(--jp-ui-font-family);
+  font-size: 13px;
+  color: var(--jp-ui-font-color1);
+  background: var(--jp-layout-color0, var(--jp-layout-color2));
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.jp-DataTable-form-searchInput::placeholder {
+  color: var(--jp-ui-font-color3);
+}
+
+.jp-DataTable-form-searchInput:focus {
+  border-color: var(--jp-brand-color1);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--jp-brand-color1) 22%, transparent);
+}
+
+/* ─────────── scrollable body ─────────── */
+
+.jp-DataTable-form-body {
+  /* Grid row 2 (1fr). min-height:0 is critical so the row can shrink
+   * below content height and overflow-y triggers a scrollbar. */
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px var(--dts-pad) 14px;
+  background: var(--jp-layout-color1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* Enables container queries on direct descendants. */
+  container-type: inline-size;
+}
+
+.jp-DataTable-form-body::-webkit-scrollbar {
+  width: 10px;
+}
+.jp-DataTable-form-body::-webkit-scrollbar-track {
+  background: var(--jp-layout-color1);
+}
+.jp-DataTable-form-body::-webkit-scrollbar-thumb {
+  background: var(--jp-border-color1);
+  border-radius: 5px;
+  border: 2px solid var(--jp-layout-color1);
+}
+.jp-DataTable-form-body::-webkit-scrollbar-thumb:hover {
+  background: var(--jp-ui-font-color3);
+}
+
+/* ─────────── accordion section (full width) ─────────── */
+
+.jp-DataTable-form-section {
+  width: 100%;
+  border-radius: var(--dts-section-radius);
+  overflow: hidden;
+  /* Don't let flex shrink the section below its content height —
+   * we want body to scroll, not sections to clip. */
+  flex: 0 0 auto;
+}
+
+.jp-DataTable-form-sectionHead {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 14px;
+  background: var(--jp-layout-color2);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: var(--dts-section-radius);
+  color: var(--jp-ui-font-color1);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.jp-DataTable-form-sectionHead::-webkit-details-marker {
+  display: none;
+}
+.jp-DataTable-form-sectionHead::marker {
+  content: '';
+}
+
+.jp-DataTable-form-sectionHead:hover {
+  background: var(--jp-layout-color3);
+  border-color: var(--jp-border-color1);
+}
+
+.jp-DataTable-form-sectionHead:focus-visible {
+  outline: 2px solid var(--jp-brand-color1);
+  outline-offset: -2px;
+}
+
+.jp-DataTable-form-section[open] .jp-DataTable-form-sectionHead {
+  border-radius: var(--dts-section-radius) var(--dts-section-radius) 0 0;
+  border-bottom-color: var(--jp-border-color2);
+}
+
+.jp-DataTable-form-sectionIcon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--jp-ui-font-color2);
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+.jp-DataTable-form-sectionIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.jp-DataTable-form-section[open] .jp-DataTable-form-sectionIcon {
+  color: var(--jp-ui-font-color0, var(--jp-ui-font-color1));
+}
+
+.jp-DataTable-form-sectionLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  color: var(--jp-ui-font-color0, var(--jp-ui-font-color1));
+}
+
+.jp-DataTable-form-section:not([open]) .jp-DataTable-form-sectionLabel,
+.jp-DataTable-form-section:not([open]) .jp-DataTable-form-sectionIcon {
+  color: var(--jp-ui-font-color2);
+}
+
+.jp-DataTable-form-sectionDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--jp-warn-color1, var(--jp-brand-color1));
+  flex: 0 0 auto;
+  display: none;
+}
+.jp-DataTable-form-sectionDot.is-visible {
+  display: inline-block;
+}
+
+.jp-DataTable-form-sectionCollapser {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--jp-ui-font-color2);
+  transition: transform 0.18s ease;
+}
+
+.jp-DataTable-form-section[open] .jp-DataTable-form-sectionCollapser {
+  transform: rotate(180deg);
+}
+
+.jp-DataTable-form-sectionBody {
+  padding: 2px 14px 8px;
+  background: transparent;
+}
+
+/* ─────────── field row (label left + control right) ─────────── */
+
+.jp-DataTable-form-field {
+  padding: 9px 0;
+  border-bottom: 1px solid transparent;
+  transition: opacity 0.12s;
+}
+
+.jp-DataTable-form-field + .jp-DataTable-form-field {
+  border-top: 1px solid var(--jp-border-color2);
+}
+
+.jp-DataTable-form-field.is-disabled {
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+.jp-DataTable-form-fieldTopRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 24px;
+}
+
+.jp-DataTable-form-fieldHead {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.jp-DataTable-form-fieldTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--jp-ui-font-color0, var(--jp-ui-font-color1));
+  line-height: 1.3;
+}
+
+.jp-DataTable-form-fieldTitle.is-critical {
+  color: var(--jp-brand-color1);
+}
+
+.jp-DataTable-form-fieldReset.jp-Button.jp-mod-minimal {
+  height: 20px;
+  min-width: 0;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  color: var(--jp-ui-font-color3);
+  border: 1px solid var(--jp-border-color1);
+  border-radius: 4px;
+  background: transparent;
+  display: none;
+  align-items: center;
+}
+
+.jp-DataTable-form-field.is-modified .jp-DataTable-form-fieldReset {
+  display: inline-flex;
+}
+
+.jp-DataTable-form-fieldReset.jp-Button.jp-mod-minimal:hover {
+  color: var(--jp-ui-font-color1);
+  background: var(--jp-layout-color2);
+  border-color: var(--jp-border-color0, var(--jp-border-color1));
+}
+
+.jp-DataTable-form-fieldEnv {
+  font-family: var(--jp-code-font-family);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--jp-success-color1, var(--jp-brand-color1));
+  background: color-mix(
+    in srgb,
+    var(--jp-success-color1, var(--jp-brand-color1)) 14%,
+    transparent
+  );
+}
+
+.jp-DataTable-form-fieldControl {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Description: stays in the LEFT column under the title only — does not
+ * extend under the control. Width-capped to the title column. */
+.jp-DataTable-form-fieldDesc {
+  margin-top: 4px;
+  padding-right: 10px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--jp-ui-font-color2);
+  /* Reserve right gutter for the control column. */
+  max-width: calc(100% - 110px);
+}
+
+/* On narrow widths, stack the field vertically. */
+@container (max-width: 380px) {
+  .jp-DataTable-form-fieldTopRow {
+    align-items: flex-start;
+  }
+  .jp-DataTable-form-fieldDesc {
+    max-width: 100%;
+    padding-right: 0;
+  }
+}
+
+/* ─────────── controls ─────────── */
+
+/* Toggle: built atop JL's jp-switch / jp-switch-track. We override the
+ * track size and active color so it matches the design (green when on,
+ * brand→success gradient for the critical "auto-rendering" toggle). */
+.jp-DataTable-form-switch.jp-switch {
+  height: 22px;
+  padding: 0;
+  background: transparent;
+}
+
+.jp-DataTable-form-switch.jp-switch:hover {
+  background: transparent;
+}
+
+.jp-DataTable-form-switch .jp-switch-track {
+  width: 38px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--jp-layout-color3);
+  transition: background 0.18s;
+}
+
+.jp-DataTable-form-switch .jp-switch-track::before {
+  width: 14px;
+  height: 14px;
+  margin: 3px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: left 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.18s;
+}
+
+.jp-DataTable-form-switch[aria-checked='true'] .jp-switch-track {
+  background: var(--jp-success-color1, #238636);
+  box-shadow: 0 0 10px
+    color-mix(in srgb, var(--jp-success-color1, #238636) 32%, transparent);
+}
+
+.jp-DataTable-form-switch[aria-checked='true'] .jp-switch-track::before {
+  /* track 38 - margin 3*2 - thumb 14 = 18 */
+  left: 18px;
+}
+
+/* Critical toggle uses the brand→success gradient (matches screenshot). */
+.jp-DataTable-form-field
+  .jp-DataTable-form-fieldTitle.is-critical
+  ~ * .jp-DataTable-form-switch[aria-checked='true']
+  .jp-switch-track,
+.jp-DataTable-form-field
+  .jp-DataTable-form-fieldHead
+  + .jp-DataTable-form-fieldControl
+  .jp-DataTable-form-switch[aria-checked='true']
+  .jp-switch-track {
+  /* Fallback to the simple green; gradient is applied below for critical. */
+}
+
+.jp-DataTable-form-field:has(.is-critical)
+  .jp-DataTable-form-switch[aria-checked='true']
+  .jp-switch-track {
+  background: linear-gradient(
+    135deg,
+    var(--jp-brand-color1, #58a6ff),
+    var(--jp-success-color1, #3fb950)
+  );
+  box-shadow: 0 0 14px
+    color-mix(in srgb, var(--jp-brand-color1, #58a6ff) 32%, transparent);
+}
+
+/* Select */
+select.jp-DataTable-form-select {
+  width: auto;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  height: 30px;
+  margin: 0;
+  padding: 0 26px 0 10px;
+  font-family: var(--jp-ui-font-family);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--jp-ui-font-color1);
+  background: var(--jp-layout-color0, var(--jp-layout-color2));
+  border: 1px solid var(--jp-border-color1);
+  border-radius: var(--dts-control-radius);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 13px) 13px, calc(100% - 9px) 13px;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+}
+
+.jp-DataTable-form-select:hover {
+  border-color: var(--jp-border-color0, var(--jp-border-color1));
+}
+
+.jp-DataTable-form-select:focus {
+  border-color: var(--jp-brand-color1);
+  outline: none;
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--jp-brand-color1) 22%, transparent);
+}
+
+/* Number stepper */
+.jp-DataTable-form-number {
+  display: inline-flex;
+  align-items: stretch;
+  height: 30px;
+  border: 1px solid var(--jp-border-color1);
+  border-radius: var(--dts-control-radius);
+  overflow: hidden;
+  background: var(--jp-layout-color0, var(--jp-layout-color2));
+}
+
+.jp-DataTable-form-number:focus-within {
+  border-color: var(--jp-brand-color1);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--jp-brand-color1) 22%, transparent);
+}
+
+.jp-DataTable-form-numberBtn.jp-Button.jp-mod-minimal {
+  width: 26px;
+  min-width: 26px;
+  height: 100%;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  color: var(--jp-ui-font-color2);
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jp-DataTable-form-numberBtn.jp-Button.jp-mod-minimal:hover:not(:disabled) {
+  background: var(--jp-layout-color2);
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-DataTable-form-numberBtn.jp-Button.jp-mod-minimal:disabled {
+  color: var(--jp-ui-font-color3);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input.jp-DataTable-form-numberInput {
+  width: 64px;
+  height: 100%;
+  margin: 0;
+  border: none;
+  border-left: 1px solid var(--jp-border-color2);
+  border-right: 1px solid var(--jp-border-color2);
+  border-radius: 0;
+  background: transparent;
+  color: var(--jp-ui-font-color1);
+  font-family: var(--jp-code-font-family);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  padding: 0;
+  -moz-appearance: textfield;
+  box-sizing: border-box;
+}
+
+.jp-DataTable-form-numberInput::-webkit-inner-spin-button,
+.jp-DataTable-form-numberInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ─────────── footer toolbar ─────────── */
+
+.jp-DataTable-form-toolbar.jp-Toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px var(--dts-pad);
+  min-height: 0;
+  background: var(--jp-layout-color1);
+  /* Strong top separator. */
+  border-top: 1px solid var(--jp-border-color1);
+  box-shadow: 0 -1px 0 0 var(--jp-border-color2);
+}
+
+.jp-DataTable-form-toolbarGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jp-DataTable-form-toolbarSpacer {
+  flex: 1 1 auto;
+}
+
+.jp-DataTable-form-toolbar .jp-Dialog-button.jp-mod-styled {
+  height: 32px;
+  min-width: 92px;
+  line-height: 32px;
+  padding: 0 14px;
+  border-radius: var(--dts-control-radius);
+  font-family: var(--jp-ui-font-family);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.jp-DataTable-form-toolbar .jp-Dialog-button.jp-mod-styled.jp-mod-reject {
+  background: transparent;
+  color: var(--jp-ui-font-color1);
+  border: 1px solid var(--jp-border-color1);
+}
+
+.jp-DataTable-form-toolbar
+  .jp-Dialog-button.jp-mod-styled.jp-mod-reject:hover {
+  background: var(--jp-layout-color2);
+  border-color: var(--jp-border-color0, var(--jp-border-color1));
+}
+
+.jp-DataTable-form-toolbar .jp-Dialog-button.jp-mod-styled.jp-mod-accept {
+  background: var(--jp-accept-color-normal, var(--jp-brand-color1));
+  color: var(--jp-ui-inverse-font-color1, #fff);
+  border: none;
+}
+
+.jp-DataTable-form-toolbar
+  .jp-Dialog-button.jp-mod-styled.jp-mod-accept:hover:not(:disabled) {
+  background: var(--jp-accept-color-hover, var(--jp-brand-color0));
+  filter: brightness(1.05);
+}
+
+.jp-DataTable-form-toolbar
+  .jp-Dialog-button.jp-mod-styled.jp-mod-accept:disabled {
+  background: var(--jp-layout-color3);
+  color: var(--jp-ui-font-color3);
+  cursor: not-allowed;
+}
+
+.jp-DataTable-form-status {
+  font-size: 12px;
+  color: var(--jp-ui-font-color2);
+  font-weight: 600;
+  transition: color 0.15s;
+}
+
+.jp-DataTable-form-status.is-success {
+  color: var(--jp-success-color1, var(--jp-brand-color1));
+}
+
+.jp-DataTable-form-status.is-error {
+  color: var(--jp-error-color1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jp-DataTable-settings *,
+  .jp-DataTable-settings *::before,
+  .jp-DataTable-settings *::after {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+  }
+}

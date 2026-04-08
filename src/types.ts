@@ -119,18 +119,34 @@ export interface DataTableState {
   saved_at: string;
 }
 
+export type ThemeMode = 'auto' | 'light' | 'dark';
+
 export interface RendererSettings {
   enabled: boolean;
-  defaultPageSize: number;
   htmlInterception: boolean;
-  lazyProfiles: boolean;
+  theme: ThemeMode;
+  defaultPageSize: number;
   maxClientRows: number;
+  keyboardNav: boolean;
+  lazyProfiles: boolean;
+  showColumnTypes: boolean;
+  showDistributions: boolean;
+  compactHeaders: boolean;
+  cacheMaxEntries: number;
+  cacheTTL: number;
 }
 
 export const DEFAULT_SETTINGS: RendererSettings = {
   enabled: true,
-  defaultPageSize: 100,
   htmlInterception: true,
+  theme: 'auto',
+  defaultPageSize: 100,
+  maxClientRows: 10000,
+  keyboardNav: true,
   lazyProfiles: true,
-  maxClientRows: 10000
+  showColumnTypes: true,
+  showDistributions: true,
+  compactHeaders: false,
+  cacheMaxEntries: 50,
+  cacheTTL: 3600
 };

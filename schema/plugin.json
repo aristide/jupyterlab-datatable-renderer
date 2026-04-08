@@ -1,0 +1,38 @@
+{
+  "title": "DataTable Renderer",
+  "description": "Interactive data table for cell output. Renders DataFrames with sorting, filtering, pagination, and lazy column profiling.",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "title": "Enable auto-rendering",
+      "description": "When true, intercepts DataFrame outputs and renders them with the interactive DataTable widget."
+    },
+    "defaultPageSize": {
+      "type": "number",
+      "default": 100,
+      "title": "Default page size",
+      "enum": [25, 50, 100, 250, 500, 1000]
+    },
+    "htmlInterception": {
+      "type": "boolean",
+      "default": true,
+      "title": "Intercept HTML tables",
+      "description": "Enable the client-side HTML table interceptor for kernels without the formatter hook."
+    },
+    "lazyProfiles": {
+      "type": "boolean",
+      "default": true,
+      "title": "Lazy-load column profiles",
+      "description": "Fetch column statistics on hover rather than up front."
+    },
+    "maxClientRows": {
+      "type": "number",
+      "default": 10000,
+      "title": "Max rows for client-side fallback",
+      "description": "When the server extension is unavailable, the maximum number of rows to keep in the browser."
+    }
+  },
+  "additionalProperties": false
+}

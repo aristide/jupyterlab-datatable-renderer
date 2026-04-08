@@ -15,6 +15,8 @@
     "resolveJsonModule": true,
     "outDir": "lib",
     "rootDir": "src",
+    "skipLibCheck": true,
+    "lib": ["ES2018", "DOM", "DOM.Iterable"],
     "strict": true,
     "strictNullChecks": true,
     "target": "ES2018",

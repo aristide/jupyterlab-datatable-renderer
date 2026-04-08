@@ -1,5 +1,375 @@
 /*
-    See the JupyterLab Developer Guide for useful CSS Patterns:
+ * jupyterlab-datatable-renderer
+ *
+ * All colors derive from JupyterLab CSS variables so the table
+ * automatically adapts to light and dark themes.
+ */
 
-    https://jupyterlab.readthedocs.io/en/stable/developer/css.html
-*/
+.jp-DataTable-host {
+  width: 100%;
+  overflow: auto;
+}
+
+.jp-DataTable {
+  width: 100%;
+}
+
+.jp-DataTable-root {
+  display: flex;
+  flex-direction: column;
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 4px;
+  font-family: var(--jp-ui-font-family);
+  font-size: var(--jp-ui-font-size1);
+  overflow: hidden;
+}
+
+/* ---------- toolbar ---------- */
+
+.jp-DataTable-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--jp-layout-color2);
+  border-bottom: 1px solid var(--jp-border-color2);
+}
+
+.jp-DataTable-title {
+  font-weight: 600;
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-DataTable-spacer {
+  flex: 1 1 auto;
+}
+
+.jp-DataTable-search {
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 3px;
+  padding: 3px 8px;
+  font-size: var(--jp-ui-font-size1);
+  min-width: 180px;
+}
+
+.jp-DataTable-badge {
+  font-size: var(--jp-ui-font-size0);
+  background: var(--jp-brand-color3);
+  color: var(--jp-ui-inverse-font-color1, #fff);
+  padding: 1px 6px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- progress bar ---------- */
+
+.jp-DataTable-progress {
+  height: 3px;
+  background: var(--jp-layout-color3);
+  position: relative;
+}
+
+.jp-DataTable-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(
+    90deg,
+    var(--jp-brand-color1),
+    var(--jp-accent-color1, var(--jp-brand-color2))
+  );
+  transition: width 200ms ease;
+}
+
+/* ---------- table ---------- */
+
+.jp-DataTable-tableWrap {
+  max-height: 480px;
+  overflow: auto;
+}
+
+.jp-DataTable-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--jp-ui-font-size1);
+}
+
+.jp-DataTable-table thead th {
+  background: var(--jp-layout-color2);
+  border-bottom: 1px solid var(--jp-border-color1);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.jp-DataTable-thInner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.jp-DataTable-thBadge {
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+  background: var(--jp-layout-color3);
+  border-radius: 3px;
+  padding: 0 4px;
+  min-width: 14px;
+  text-align: center;
+}
+
+.jp-DataTable-thSort {
+  color: var(--jp-brand-color1);
+  font-size: 10px;
+}
+
+.jp-DataTable-th--quantitative .jp-DataTable-thName {
+  color: var(--jp-ui-font-color1);
+}
+
+.jp-DataTable-filterRow th {
+  position: sticky;
+  top: 32px;
+  background: var(--jp-layout-color1);
+  border-bottom: 1px solid var(--jp-border-color2);
+  padding: 4px 6px;
+}
+
+.jp-DataTable-filterInput {
+  width: 100%;
+  background: var(--jp-layout-color0);
+  color: var(--jp-ui-font-color1);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: var(--jp-ui-font-size0);
+  font-family: var(--jp-code-font-family);
+  box-sizing: border-box;
+}
+
+.jp-DataTable-table tbody tr:nth-child(odd) {
+  background: var(--jp-layout-color1);
+}
+
+.jp-DataTable-table tbody tr:nth-child(even) {
+  background: var(--jp-layout-color0);
+}
+
+.jp-DataTable-table tbody tr:hover {
+  background: var(--jp-layout-color2);
+}
+
+.jp-DataTable-td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--jp-border-color3, var(--jp-border-color2));
+  font-family: var(--jp-code-font-family);
+  white-space: nowrap;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jp-DataTable-td--num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.jp-DataTable-null {
+  color: var(--jp-ui-font-color3);
+  font-style: italic;
+  font-size: var(--jp-ui-font-size0);
+  background: var(--jp-layout-color2);
+  padding: 0 4px;
+  border-radius: 2px;
+}
+
+.jp-DataTable-empty {
+  padding: 18px;
+  text-align: center;
+  color: var(--jp-ui-font-color2);
+  font-style: italic;
+}
+
+.jp-DataTable-loading {
+  opacity: 0.55;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+/* ---------- footer ---------- */
+
+.jp-DataTable-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--jp-layout-color2);
+  border-top: 1px solid var(--jp-border-color2);
+  flex-wrap: wrap;
+}
+
+.jp-DataTable-pageInfo {
+  color: var(--jp-ui-font-color2);
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-DataTable-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.jp-DataTable-pageBtn {
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  border: 1px solid var(--jp-border-color2);
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: var(--jp-ui-font-size0);
+  min-width: 24px;
+}
+
+.jp-DataTable-pageBtn:hover:not(:disabled) {
+  background: var(--jp-layout-color3);
+}
+
+.jp-DataTable-pageBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.jp-DataTable-pageBtn--active {
+  background: var(--jp-brand-color1);
+  color: var(--jp-ui-inverse-font-color1, #fff);
+  border-color: var(--jp-brand-color1);
+}
+
+.jp-DataTable-ellipsis {
+  padding: 0 4px;
+  color: var(--jp-ui-font-color3);
+}
+
+.jp-DataTable-jump {
+  width: 70px;
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-DataTable-pageSize {
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: var(--jp-ui-font-size0);
+}
+
+/* ---------- profile popover ---------- */
+
+.jp-DataTable-profile {
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  border: 1px solid var(--jp-border-color1);
+  border-radius: 4px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+  padding: 8px 10px;
+  min-width: 220px;
+  max-width: 320px;
+  z-index: 9999;
+  font-size: var(--jp-ui-font-size1);
+}
+
+.jp-DataTable-profileTitle {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.jp-DataTable-profileType {
+  color: var(--jp-ui-font-color2);
+  font-weight: 400;
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-DataTable-profileMeta {
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color2);
+  margin-bottom: 6px;
+}
+
+.jp-DataTable-profileStats {
+  font-family: var(--jp-code-font-family);
+  font-size: var(--jp-ui-font-size0);
+  color: var(--jp-ui-font-color1);
+  margin-bottom: 6px;
+}
+
+.jp-DataTable-spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 44px;
+}
+
+.jp-DataTable-sparkBar {
+  flex: 1 1 auto;
+  background: var(--jp-brand-color1);
+  min-width: 3px;
+  border-radius: 1px 1px 0 0;
+}
+
+.jp-DataTable-topValues {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.jp-DataTable-topRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--jp-ui-font-size0);
+}
+
+.jp-DataTable-topLabel {
+  flex: 0 0 90px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--jp-code-font-family);
+}
+
+.jp-DataTable-topBarWrap {
+  flex: 1 1 auto;
+  background: var(--jp-layout-color3);
+  border-radius: 2px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.jp-DataTable-topBar {
+  display: block;
+  height: 100%;
+  background: var(--jp-brand-color1);
+}
+
+.jp-DataTable-topCount {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--jp-ui-font-color2);
+}

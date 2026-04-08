@@ -1,5 +1,5 @@
 {
-  "name": "Jupyterlab Extension",
+  "name": "jupyterlab-datatable-renderer",
   "remoteUser": "jupyter",
   "forwardPorts": [8888, 9999, 9000, 9001],
   "portsAttributes": {
@@ -41,5 +41,5 @@
   "mounts": [
     "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/jupyter/.ssh,type=bind,consistency=cached"
   ],
-  "postCreateCommand": "pip install -e . && jupyter labextension develop . --overwrite && jupyter server extension enable jupyterlab_pywalker_renderer && jlpm build"
+  "postCreateCommand": "pip install -e . && jupyter labextension develop . --overwrite && jlpm build"
 }

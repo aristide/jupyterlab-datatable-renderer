@@ -5,11 +5,11 @@ import { IRenderMime } from '@jupyterlab/rendermime-interfaces';
 import { Widget } from '@lumino/widgets';
 
 import { DataTableWidget } from './renderer';
+import { LiveSettings } from './liveSettings';
 import { clear } from './dom';
 import {
   DataTablePayload,
   Field,
-  RendererSettings,
   Row,
   SemanticType
 } from './types';
@@ -111,19 +111,19 @@ function isDataTable(table: HTMLTableElement): boolean {
 }
 
 class HtmlTableRenderer extends Widget implements IRenderMime.IRenderer {
-  private _settingsRef: { value: RendererSettings };
+  private _liveSettings: LiveSettings;
 
   constructor(
     _options: IRenderMime.IRendererOptions,
-    settingsRef: { value: RendererSettings }
+    liveSettings: LiveSettings
   ) {
     super();
-    this._settingsRef = settingsRef;
+    this._liveSettings = liveSettings;
     this.addClass('jp-DataTable-host');
   }
 
   async renderModel(model: IRenderMime.IMimeModel): Promise<void> {
-    const settings = this._settingsRef.value;
+    const settings = this._liveSettings.value;
     const html = (model.data[HTML_MIME] ?? '') as string;
     if (!settings.enabled || !settings.htmlInterception || !html) {
       this._defaultRender(html);
@@ -164,7 +164,7 @@ class HtmlTableRenderer extends Widget implements IRenderMime.IRenderer {
       server_managed: false
     };
     clear(this.node);
-    const widget = new DataTableWidget(payload, model, settings, rows);
+    const widget = new DataTableWidget(payload, model, this._liveSettings, rows);
     this.node.appendChild(widget.node);
   }
 
@@ -182,9 +182,9 @@ export class HtmlTableInterceptorFactory implements IRenderMime.IRendererFactory
   readonly mimeTypes = [HTML_MIME];
   defaultRank = 50; // higher priority than the default html factory (rank 90)
 
-  constructor(public settingsRef: { value: RendererSettings }) {}
+  constructor(public liveSettings: LiveSettings) {}
 
   createRenderer(options: IRenderMime.IRendererOptions): IRenderMime.IRenderer {
-    return new HtmlTableRenderer(options, this.settingsRef);
+    return new HtmlTableRenderer(options, this.liveSettings);
   }
 }

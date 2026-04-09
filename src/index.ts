@@ -11,8 +11,9 @@ import { DataTableRendererFactory } from './renderer';
 import { HtmlTableInterceptorFactory } from './htmlInterceptor';
 import { SettingsFormWidget } from './settingsForm';
 import { attachKernelInstaller } from './kernelInstaller';
+import { LiveSettings } from './liveSettings';
 import { dataTableIcon } from './icon';
-import { DEFAULT_SETTINGS, RendererSettings, ThemeMode } from './types';
+import { DEFAULT_SETTINGS, ThemeMode } from './types';
 
 const PLUGIN_ID = 'jupyterlab-datatable-renderer:plugin';
 
@@ -33,15 +34,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
     settingRegistry: ISettingRegistry | null,
     restorer: ILayoutRestorer | null
   ) => {
-    // Shared, mutable settings reference so factories see live updates.
-    const settingsRef: { value: RendererSettings } = {
-      value: { ...DEFAULT_SETTINGS }
-    };
+    // Shared, observable settings instance. Every renderer subscribes to it
+    // so that toggling a setting in the sidebar form updates already-mounted
+    // tables in real time without re-running the cell.
+    const liveSettings = new LiveSettings({ ...DEFAULT_SETTINGS });
 
-    const dataTableFactory = new DataTableRendererFactory(settingsRef);
+    const dataTableFactory = new DataTableRendererFactory(liveSettings);
     rendermime.addFactory(dataTableFactory, 0);
 
-    const htmlFactory = new HtmlTableInterceptorFactory(settingsRef);
+    const htmlFactory = new HtmlTableInterceptorFactory(liveSettings);
     rendermime.addFactory(htmlFactory, htmlFactory.defaultRank);
 
     // Auto-install the kernel-side formatter on every notebook kernel,
@@ -51,7 +52,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     if (settingRegistry) {
       const apply = (s: ISettingRegistry.ISettings) => {
-        settingsRef.value = {
+        liveSettings.set({
           enabled: (s.get('enabled').composite as boolean) ?? true,
           htmlInterception:
             (s.get('htmlInterception').composite as boolean) ?? true,
@@ -71,7 +72,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           cacheMaxEntries:
             (s.get('cacheMaxEntries').composite as number) ?? 50,
           cacheTTL: (s.get('cacheTTL').composite as number) ?? 3600
-        };
+        });
       };
       settingRegistry
         .load(PLUGIN_ID)

@@ -5,6 +5,7 @@ import { Widget } from '@lumino/widgets';
 
 import { fetchPage, fetchProfile } from './api';
 import { clear, debounce, el, formatNumber } from './dom';
+import { LiveSettings } from './liveSettings';
 import {
   ColumnProfile,
   DATATABLE_MIME,
@@ -93,6 +94,7 @@ class DataTableWidget extends Widget {
   private _currentRows: Row[];
   private _totalFiltered: number;
   private _loading = false;
+  private _unsubscribeSettings: (() => void) | null = null;
 
   // For client-side mode (HTML interceptor + non-server payloads).
   private _clientRows: Row[] | null;
@@ -112,14 +114,14 @@ class DataTableWidget extends Widget {
   constructor(
     payload: DataTablePayload,
     model: IRenderMime.IMimeModel,
-    settings: RendererSettings,
+    liveSettings: LiveSettings,
     clientRows: Row[] | null
   ) {
     super();
     this.addClass('jp-DataTable');
     this._payload = payload;
     this._model = model;
-    this._settings = settings;
+    this._settings = liveSettings.value;
     this._fields = payload.fields;
     this._currentRows = payload.data;
     this._totalFiltered = payload.total_rows;
@@ -133,6 +135,39 @@ class DataTableWidget extends Widget {
       this._renderRows();
       this._renderFooter();
     }
+    // Subscribe to live settings updates so the user can change page size,
+    // toggle lazy profiles, etc. without re-running the cell.
+    this._unsubscribeSettings = liveSettings.subscribe(next =>
+      this._onSettingsChanged(next)
+    );
+  }
+
+  dispose(): void {
+    if (this._unsubscribeSettings) {
+      this._unsubscribeSettings();
+      this._unsubscribeSettings = null;
+    }
+    super.dispose();
+  }
+
+  private _onSettingsChanged(next: RendererSettings): void {
+    const prev = this._settings;
+    this._settings = next;
+    // If the user changed the default page size, adopt it for this widget
+    // (only when the user hasn't manually deviated from the previous default).
+    if (
+      next.defaultPageSize !== prev.defaultPageSize &&
+      this._state.page_size === prev.defaultPageSize
+    ) {
+      this._state.page_size = this._coercePageSize(next.defaultPageSize);
+      this._state.page = 1;
+      void this._refresh();
+      return;
+    }
+    // Other live changes (lazyProfiles, etc.) are picked up by re-rendering
+    // the header (which re-attaches/detaches the profile hover handlers).
+    this._renderHeader();
+    this._renderFooter();
   }
 
   // ----- state persistence ------------------------------------------------ //
@@ -685,14 +720,14 @@ class DataTableWidget extends Widget {
 // ------------------------------------------------------------------------- //
 
 class DataTableRenderer extends Widget implements IRenderMime.IRenderer {
-  private _settingsRef: { value: RendererSettings };
+  private _liveSettings: LiveSettings;
 
   constructor(
     options: IRenderMime.IRendererOptions,
-    settingsRef: { value: RendererSettings }
+    liveSettings: LiveSettings
   ) {
     super();
-    this._settingsRef = settingsRef;
+    this._liveSettings = liveSettings;
     this.addClass('jp-DataTable-host');
   }
 
@@ -703,12 +738,11 @@ class DataTableRenderer extends Widget implements IRenderMime.IRenderer {
       return;
     }
     const payload = data as DataTablePayload;
-    // Clear and mount
     clear(this.node);
     const widget = new DataTableWidget(
       payload,
       model,
-      this._settingsRef.value,
+      this._liveSettings,
       null
     );
     this.node.appendChild(widget.node);
@@ -721,10 +755,10 @@ export class DataTableRendererFactory implements IRenderMime.IRendererFactory {
   defaultRank = 0;
   enabled = true;
 
-  constructor(public settingsRef: { value: RendererSettings }) {}
+  constructor(public liveSettings: LiveSettings) {}
 
   createRenderer(options: IRenderMime.IRendererOptions): IRenderMime.IRenderer {
-    return new DataTableRenderer(options, this.settingsRef);
+    return new DataTableRenderer(options, this.liveSettings);
   }
 }
 

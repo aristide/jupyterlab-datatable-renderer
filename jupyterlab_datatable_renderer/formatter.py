@@ -1,5 +1,14 @@
 """Kernel-side formatter hooks that intercept DataFrame repr and emit
-the custom DataTable MIME bundle while keeping the standard text/html fallback."""
+the custom DataTable MIME bundle while keeping the standard text/html fallback.
+
+The bundle ships up to ``DT_MAX_CLIENT_ROWS`` rows inline so the frontend can
+paginate, sort, filter, and search entirely client-side without round-tripping
+through a server endpoint. The previous design tried to register the live
+DataFrame in a process-local cache and have the server REST handlers fetch
+pages on demand — but the kernel and the Jupyter server are *separate Python
+processes*, so the kernel-registered cache entry was never visible to the
+server-side handler and every page request 404'd.
+"""
 
 from __future__ import annotations
 
@@ -7,10 +16,15 @@ import hashlib
 import os
 import time
 
-from .cache import DEFAULT_PAGE_SIZE, _records, cache
+from .cache import _records, cache
 
 MIME = "application/vnd.datatable.v1+json"
-PAGE_SIZE = int(os.environ.get("DT_DEFAULT_PAGE_SIZE", str(DEFAULT_PAGE_SIZE)))
+
+# Maximum number of rows shipped inline in a single MIME bundle. Larger
+# DataFrames are truncated to this many rows; the user sees a "showing first
+# N of M" indicator in the toolbar. Override with the DT_MAX_CLIENT_ROWS env
+# var (e.g. for very wide datasets you may want to lower this).
+MAX_CLIENT_ROWS = int(os.environ.get("DT_MAX_CLIENT_ROWS", "10000"))
 
 _INSTALLED = False
 
@@ -21,14 +35,19 @@ def _make_dataset_id(df) -> str:
 
 
 def _build_bundle(df, html: str) -> dict:
-    """Build the dual MIME bundle for a pandas DataFrame."""
+    """Build the dual MIME bundle for a pandas DataFrame.
+
+    The full DataFrame (capped at ``MAX_CLIENT_ROWS``) is shipped inline so
+    the renderer can paginate without server roundtrips.
+    """
     dataset_id = _make_dataset_id(df)
+    total_rows = int(len(df))
+    shipped = min(total_rows, MAX_CLIENT_ROWS)
+    head = df.head(shipped)
+
     try:
-        entry = cache.register(df, dataset_id=dataset_id)
-        server_managed = True
-        fields = entry.fields
+        fields = cache._infer_fields(head)
     except Exception:
-        server_managed = False
         fields = [
             {
                 "fid": str(c),
@@ -40,17 +59,16 @@ def _build_bundle(df, html: str) -> dict:
             for c in df.columns
         ]
 
-    first_page = df.head(PAGE_SIZE)
     payload = {
         "version": "1.0",
         "dataset_id": dataset_id,
-        "total_rows": int(len(df)),
+        "total_rows": total_rows,
         "total_columns": int(len(df.columns)),
-        "page_size": PAGE_SIZE,
+        "page_size": min(shipped, 100),
         "page": 1,
         "fields": fields,
-        "data": _records(first_page),
-        "server_managed": server_managed,
+        "data": _records(head),
+        "server_managed": False,
         "cache_ttl": 3600,
     }
     return {MIME: payload, "text/html": html}

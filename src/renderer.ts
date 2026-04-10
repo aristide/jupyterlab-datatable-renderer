@@ -18,7 +18,18 @@ import {
 } from './types';
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 250, 500, 1000];
-const STATE_KEY = 'datatable_state';
+
+// In-memory state store keyed by dataset_id. We previously persisted state
+// via `model.setData({metadata})`, but that fires the output model's
+// stateChanged signal *synchronously*, which the OutputArea reacts to by
+// re-invoking renderModel — producing a fresh DataTableWidget whose
+// constructor called _refresh → _persistState → setData → ... a synchronous
+// render loop that blew the call stack. The crash surfaced as a RangeError
+// inside Number.toLocaleString (the frame that happened to be on top when
+// the stack overflowed), but the root cause was the setData feedback loop.
+// Keeping state in a module-level map sidesteps it entirely. Trade-off:
+// state does not survive notebook reload — acceptable for v1.
+const _stateStore = new Map<string, DataTableState>();
 
 interface ClientSliceArgs {
   page: number;
@@ -87,7 +98,6 @@ function clientSlice(rows: Row[], fields: Field[], args: ClientSliceArgs): PageR
 
 class DataTableWidget extends Widget {
   private _payload: DataTablePayload;
-  private _model: IRenderMime.IMimeModel;
   private _settings: RendererSettings;
   private _state: DataTableState;
   private _fields: Field[];
@@ -113,14 +123,13 @@ class DataTableWidget extends Widget {
 
   constructor(
     payload: DataTablePayload,
-    model: IRenderMime.IMimeModel,
+    _model: IRenderMime.IMimeModel,
     liveSettings: LiveSettings,
     clientRows: Row[] | null
   ) {
     super();
     this.addClass('jp-DataTable');
     this._payload = payload;
-    this._model = model;
     this._settings = liveSettings.value;
     this._fields = payload.fields;
     this._currentRows = payload.data;
@@ -173,8 +182,7 @@ class DataTableWidget extends Widget {
   // ----- state persistence ------------------------------------------------ //
 
   private _restoreState(payload: DataTablePayload): DataTableState {
-    const meta = (this._model.metadata ?? {}) as Record<string, unknown>;
-    const saved = meta[STATE_KEY] as DataTableState | undefined;
+    const saved = _stateStore.get(payload.dataset_id);
     if (saved && this._stateMatchesSchema(saved, payload.fields)) {
       return {
         ...saved,
@@ -210,15 +218,7 @@ class DataTableWidget extends Widget {
 
   private _persistState(): void {
     this._state.saved_at = new Date().toISOString();
-    try {
-      const meta: Record<string, unknown> = {
-        ...(this._model.metadata ?? {})
-      };
-      meta[STATE_KEY] = this._state as unknown as Record<string, unknown>;
-      this._model.setData({ metadata: meta as any });
-    } catch {
-      /* metadata may be read-only on some output models */
-    }
+    _stateStore.set(this._payload.dataset_id, this._state);
   }
 
   private _needsInitialFetch(payload: DataTablePayload): boolean {
